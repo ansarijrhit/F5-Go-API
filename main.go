@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -129,12 +130,31 @@ func callElevator(startingFloor, desiredFloor int) {
 	wg.Wait()
 }
 
+type elevatorHandler struct{}
+
 func main() {
-	constructElevators()
-	fmt.Println()
-	wg1.Add(1)
-	go callElevator(40, 35)
-	wg1.Add(1)
-	go callElevator(22, 30)
-	wg1.Wait()
+	mux := http.NewServeMux()
+	mux.Handle("/ping", &elevatorHandler{})
+	http.ListenAndServe("localhost:8080", mux)
+	// constructElevators()
+	// fmt.Println()
+	// wg1.Add(1)
+	// go callElevator(40, 35)
+	// wg1.Add(1)
+	// go callElevator(22, 30)
+	// wg1.Wait()
+}
+
+func (h *elevatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	switch r.Method {
+	case "GET":
+		if r.URL.Path == "/ping" {
+			h.ping(w, r)
+		}
+	}
+}
+
+func (h *elevatorHandler) ping(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte(`PONG!`))
 }
