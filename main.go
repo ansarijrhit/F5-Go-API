@@ -18,20 +18,20 @@ var elevators [12]Elevator
 
 type Elevator struct {
 	minFloor, maxFloor, currFloor int
-	name                          string
 	inTransit                     bool
+	name                          string
 }
 
 func constructElevators() {
 	rand.Seed(10)
 	for i := 0; i < 6; i++ {
 		elevators[i] = Elevator{set1Min, set1Max,
-			set1Min + rand.Intn(13), string(65 + i), false}
+			set1Min + rand.Intn(13), false, string(65 + i)}
 		fmt.Printf("%+v\n", elevators[i])
 	}
 	for i := 0; i < 6; i++ {
 		elevators[i+6] = Elevator{set2Min, set2Max,
-			set2Min + rand.Intn(15), string(71 + i), false}
+			set2Min + rand.Intn(15), false, string(71 + i)}
 		fmt.Printf("%+v\n", elevators[i+6])
 	}
 }
@@ -130,13 +130,19 @@ func callElevator(startingFloor, desiredFloor int) {
 	wg.Wait()
 }
 
-type elevatorHandler struct{}
+type elevatorHandler struct {
+	store *[12]Elevator
+}
 
 func main() {
+	constructElevators()
 	mux := http.NewServeMux()
-	mux.Handle("/ping", &elevatorHandler{})
+	elevatorH := &elevatorHandler{
+		store: &elevators,
+	}
+	mux.Handle("/ping", elevatorH)
+	mux.Handle("/allinfo", elevatorH)
 	http.ListenAndServe("localhost:8080", mux)
-	// constructElevators()
 	// fmt.Println()
 	// wg1.Add(1)
 	// go callElevator(40, 35)
@@ -145,16 +151,30 @@ func main() {
 	// wg1.Wait()
 }
 
+/**
+POST:	/callelevator
+GET:	/elevatorinfo
+		/allinfo
+		/ping
+UPDATE:	/update
+*/
+
 func (h *elevatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	switch r.Method {
 	case "GET":
 		if r.URL.Path == "/ping" {
 			h.ping(w, r)
+		} else if r.URL.Path == "/allinfo" {
+			h.allInfo(w, r)
 		}
 	}
 }
 
 func (h *elevatorHandler) ping(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`PONG!`))
+}
+
+func (h *elevatorHandler) allInfo(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte(fmt.Sprintf("%+v", h.store)))
 }
