@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"sync"
 	"time"
 )
@@ -142,6 +143,7 @@ func main() {
 	}
 	mux.Handle("/ping", elevatorH)
 	mux.Handle("/allinfo", elevatorH)
+	mux.Handle("/elevatorinfo/", elevatorH)
 	http.ListenAndServe("localhost:8080", mux)
 	// fmt.Println()
 	// wg1.Add(1)
@@ -153,11 +155,13 @@ func main() {
 
 /**
 POST:	/callelevator
-GET:	/elevatorinfo
+GET:	/elevatorinfo/{name}
 		/allinfo
 		/ping
 UPDATE:	/update
 */
+
+var getElevatorInfo = regexp.MustCompile(`^\/elevatorinfo\/([A-Z])$`)
 
 func (h *elevatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -167,6 +171,8 @@ func (h *elevatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.ping(w, r)
 		} else if r.URL.Path == "/allinfo" {
 			h.allInfo(w, r)
+		} else if getElevatorInfo.MatchString(r.URL.Path) {
+			h.elevatorInfo(w, r)
 		}
 	}
 }
@@ -177,4 +183,14 @@ func (h *elevatorHandler) ping(w http.ResponseWriter, r *http.Request) {
 
 func (h *elevatorHandler) allInfo(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf("%+v", h.store)))
+}
+
+func (h *elevatorHandler) elevatorInfo(w http.ResponseWriter, r *http.Request) {
+	matches := getElevatorInfo.FindStringSubmatch(r.URL.Path)
+	fmt.Println(matches)
+	if len(matches) < 2 {
+		return
+	}
+	desiredName := matches[1]
+	w.Write([]byte(fmt.Sprintf("%+v", h.store[int(desiredName[0])-65])))
 }
