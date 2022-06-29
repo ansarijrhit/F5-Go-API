@@ -4,10 +4,11 @@ The goal of this project is to develop a REST API application using Go, in prepa
 | HTTP Verb | Endpoint Name | Endpoint Description                                                                                                    | Arguments                                         | Return Value                |
 |-----------|---------------|-------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|-----------------------------|
 | POST      | /callelevator | User calls an elevator to a given floor, and the elevator goes down to the destination floor                            | Starting floor, destination floor                 | Success/Error               |
+| POST      | /dropelevator | User drops an elevator by one floor as an epic prank                                                                    | Elevator name                                     | Success/Error               |
 | GET       | /elevatorinfo | Provides information about an elevator (its current floor, its range of accessible floors, and whether it's in transit) | Elevator name                                     | Elevator information/Error  |
 | GET       | /allinfo      | Provides information about all the elevators                                                                            | None                                              | Elevators information/Error |
 | GET       | /ping         | Returns string "PONG!"                                                                                                  | None                                              | String                      |
-| UPDATE    | /update       | Update an elevator's info                                                                                               | Elevator name, New lower & upper bounds, new name | Success/Error               |
+| UPDATE    | /update       | Update an elevator's info                                                                                               | Elevator name, New lower & upper bounds | Success/Error               |
 
 # Approach
 1. Create an application which can run elevator logic locally
