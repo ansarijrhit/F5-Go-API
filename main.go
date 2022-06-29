@@ -147,6 +147,7 @@ func main() {
 	mux.Handle("/elevatorinfo/", elevatorH)
 	mux.Handle("/callelevator/", elevatorH)
 	mux.Handle("/dropelevator/", elevatorH)
+	mux.Handle("/updateelevator/", elevatorH)
 	http.ListenAndServe("localhost:8080", mux)
 	// fmt.Println()
 	// wg1.Add(1)
@@ -168,6 +169,7 @@ UPDATE:	/update/?name={name}&newLower={newLower}&newHigher={newHigher}
 var getElevatorInfo = regexp.MustCompile(`^\/elevatorinfo\/\?name=([A-Z])$`)
 var callElevatorStr = regexp.MustCompile(`^\/callelevator\/\?startingFloor=(\d+)\&desiredFloor=(\d+)$`)
 var dropElevatorStr = regexp.MustCompile(`^\/dropelevator\/\?name=([A-Z])$`)
+var updateElevatorStr = regexp.MustCompile(`^\/updateelevator\/\?name=([A-Z])\&newLower=(\d+)\&newUpper=(\d+)$`)
 
 func (h *elevatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -186,7 +188,35 @@ func (h *elevatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else if r.URL.Path == "/dropelevator/" {
 			h.dropElevator(w, r)
 		}
+	case "PUT":
+		if r.URL.Path == "/updateelevator/" {
+			h.updateElevator(w, r)
+		}
 	}
+}
+func (h *elevatorHandler) updateElevator(w http.ResponseWriter, r *http.Request) {
+	matches := updateElevatorStr.FindStringSubmatch(r.URL.String())
+	fmt.Println(r.URL.String())
+	if len(matches) < 4 {
+		return
+	}
+	desiredName := matches[1]
+	desiredIndex := int(desiredName[0]) - 65
+	if 0 < desiredIndex && desiredIndex > 11 {
+		w.Write([]byte(fmt.Sprint("Error: Elevator ", desiredName, " could not be found. Please select an elevator from the letters A through L.")))
+	}
+	newLower, err1 := strconv.Atoi(matches[2])
+	newUpper, err2 := strconv.Atoi(matches[3])
+	if err1 != nil || err2 != nil {
+		fmt.Println("Err")
+		return
+	} else if newLower > newUpper {
+		fmt.Println("Err")
+		return
+	}
+	elevators[desiredIndex].minFloor = newLower
+	elevators[desiredIndex].maxFloor = newUpper
+	w.Write([]byte(fmt.Sprint("Floor range of elevator ", desiredName, " updated to ", newLower, "-", newUpper)))
 }
 
 func (h *elevatorHandler) dropElevator(w http.ResponseWriter, r *http.Request) {
@@ -211,7 +241,6 @@ func (h *elevatorHandler) callElevatorAPI(w http.ResponseWriter, r *http.Request
 	}
 	startingFloor, err1 := strconv.Atoi(matches[1])
 	desiredFloor, err2 := strconv.Atoi(matches[2])
-	fmt.Println(startingFloor, desiredFloor)
 	if err1 != nil || err2 != nil {
 		fmt.Println("Err")
 		return
