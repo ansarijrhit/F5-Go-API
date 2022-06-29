@@ -187,10 +187,14 @@ func (h *elevatorHandler) allInfo(w http.ResponseWriter, r *http.Request) {
 
 func (h *elevatorHandler) elevatorInfo(w http.ResponseWriter, r *http.Request) {
 	matches := getElevatorInfo.FindStringSubmatch(r.URL.Path)
-	fmt.Println(matches)
 	if len(matches) < 2 {
 		return
 	}
 	desiredName := matches[1]
-	w.Write([]byte(fmt.Sprintf("%+v", h.store[int(desiredName[0])-65])))
+	desiredIndex := int(desiredName[0]) - 65
+	if 0 <= desiredIndex && desiredIndex <= 11 {
+		w.Write([]byte(fmt.Sprintf("%+v", h.store[desiredIndex])))
+	} else {
+		w.Write([]byte(fmt.Sprint("Error: Elevator", desiredName, "could not be found. Please select an elevator from the letters A through L.")))
+	}
 }
