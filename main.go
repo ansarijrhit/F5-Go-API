@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"regexp"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -144,6 +145,7 @@ func main() {
 	mux.Handle("/ping", elevatorH)
 	mux.Handle("/allinfo", elevatorH)
 	mux.Handle("/elevatorinfo/", elevatorH)
+	mux.Handle("/callelevator/", elevatorH)
 	http.ListenAndServe("localhost:8080", mux)
 	// fmt.Println()
 	// wg1.Add(1)
@@ -154,27 +156,52 @@ func main() {
 }
 
 /**
-POST:	/callelevator
+POST:	/callelevator/{currfloor}&{desiredfloor}
 GET:	/elevatorinfo/{name}
 		/allinfo
 		/ping
 UPDATE:	/update
 */
 
-var getElevatorInfo = regexp.MustCompile(`^\/elevatorinfo\/([A-Z])$`)
+var getElevatorInfo = regexp.MustCompile(`^\/elevatorinfo\/\?name=([A-Z])$`)
+var callElevatorStr = regexp.MustCompile(`^\/callelevator\/\?startingFloor=(\d+)\&desiredFloor=(\d+)$`)
 
 func (h *elevatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	fmt.Println(r.Method)
 	switch r.Method {
 	case "GET":
 		if r.URL.Path == "/ping" {
 			h.ping(w, r)
 		} else if r.URL.Path == "/allinfo" {
 			h.allInfo(w, r)
-		} else if getElevatorInfo.MatchString(r.URL.Path) {
+		} else if r.URL.Path == "/elevatorinfo/" {
 			h.elevatorInfo(w, r)
 		}
+	case "POST":
+		if r.URL.Path == "/callelevator/" {
+			h.callElevatorAPI(w, r)
+		}
 	}
+}
+
+func (h *elevatorHandler) callElevatorAPI(w http.ResponseWriter, r *http.Request) {
+	matches := callElevatorStr.FindStringSubmatch(r.URL.String())
+	if len(matches) < 3 {
+		return
+	}
+	startingFloor, err1 := strconv.Atoi(matches[1])
+	desiredFloor, err2 := strconv.Atoi(matches[2])
+	fmt.Println(startingFloor, desiredFloor)
+	if err1 != nil || err2 != nil {
+		fmt.Println("Err")
+		return
+	}
+	w.Write([]byte(fmt.Sprintln("Elevator called to ", startingFloor)))
+	wg1.Add(1)
+	go callElevator(startingFloor, desiredFloor)
+	wg1.Wait()
+	w.Write([]byte(fmt.Sprintln("Elevator arrived at floor ", desiredFloor)))
 }
 
 func (h *elevatorHandler) ping(w http.ResponseWriter, r *http.Request) {
@@ -186,7 +213,7 @@ func (h *elevatorHandler) allInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *elevatorHandler) elevatorInfo(w http.ResponseWriter, r *http.Request) {
-	matches := getElevatorInfo.FindStringSubmatch(r.URL.Path)
+	matches := getElevatorInfo.FindStringSubmatch(r.URL.String())
 	if len(matches) < 2 {
 		return
 	}
