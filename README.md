@@ -7,7 +7,7 @@ The goal of this project is to develop a REST API application using Go, in prepa
 | GET       | /elevatorinfo | Provides information about an elevator (its current floor, its range of accessible floors, and whether it's in transit) | Elevator name                                     | Elevator information/Error  |
 | GET       | /allinfo      | Provides information about all the elevators                                                                            | None                                              | Elevators information/Error |
 | GET       | /ping         | Returns string "PONG!"                                                                                                  | None                                              | String                      |
-| UPDATE    | /update       | Update an elevator's info                                                                                               | Elevator name, New lower & upper bounds, new name | Success/Error               |
+| UPDATE    | /update       | Update an elevator's info                                                                                               | Elevator name, New lower & upper bounds | Success/Error               |
 
 # Approach
 1. Create an application which can run elevator logic locally
