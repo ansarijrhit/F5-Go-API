@@ -146,6 +146,7 @@ func main() {
 	mux.Handle("/allinfo", elevatorH)
 	mux.Handle("/elevatorinfo/", elevatorH)
 	mux.Handle("/callelevator/", elevatorH)
+	mux.Handle("/dropelevator/", elevatorH)
 	http.ListenAndServe("localhost:8080", mux)
 	// fmt.Println()
 	// wg1.Add(1)
@@ -156,19 +157,20 @@ func main() {
 }
 
 /**
-POST:	/callelevator/{currfloor}&{desiredfloor}
-GET:	/elevatorinfo/{name}
+POST:	/callelevator/?startingFloor={currfloor}&desiredFloor={desiredfloor}
+		/dropelevator/?name={name}
+GET:	/elevatorinfo?name={name}
 		/allinfo
 		/ping
-UPDATE:	/update
+UPDATE:	/update/?name={name}&newLower={newLower}&newHigher={newHigher}
 */
 
 var getElevatorInfo = regexp.MustCompile(`^\/elevatorinfo\/\?name=([A-Z])$`)
 var callElevatorStr = regexp.MustCompile(`^\/callelevator\/\?startingFloor=(\d+)\&desiredFloor=(\d+)$`)
+var dropElevatorStr = regexp.MustCompile(`^\/dropelevator\/\?name=([A-Z])$`)
 
 func (h *elevatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Println(r.Method)
 	switch r.Method {
 	case "GET":
 		if r.URL.Path == "/ping" {
@@ -181,7 +183,24 @@ func (h *elevatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		if r.URL.Path == "/callelevator/" {
 			h.callElevatorAPI(w, r)
+		} else if r.URL.Path == "/dropelevator/" {
+			h.dropElevator(w, r)
 		}
+	}
+}
+
+func (h *elevatorHandler) dropElevator(w http.ResponseWriter, r *http.Request) {
+	matches := dropElevatorStr.FindStringSubmatch(r.URL.String())
+	if len(matches) < 2 {
+		return
+	}
+	desiredName := matches[1]
+	desiredIndex := int(desiredName[0]) - 65
+	if elevators[desiredIndex].currFloor == elevators[desiredIndex].minFloor {
+		w.Write([]byte(fmt.Sprintln("This elevator can't drop any further.")))
+	} else {
+		elevators[desiredIndex].currFloor--
+		w.Write([]byte(fmt.Sprintln("Elevator", desiredName, "dropped one floor. Wheee!")))
 	}
 }
 
