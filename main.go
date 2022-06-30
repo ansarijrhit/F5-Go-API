@@ -192,26 +192,33 @@ func (h *elevatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/updateelevator/" {
 			h.updateElevator(w, r)
 		}
+	default:
+		w.WriteHeader(http.StatusNotFound)
 	}
 }
 func (h *elevatorHandler) updateElevator(w http.ResponseWriter, r *http.Request) {
 	matches := updateElevatorStr.FindStringSubmatch(r.URL.String())
 	fmt.Println(r.URL.String())
 	if len(matches) < 4 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintln("Error: Missing proper parameters")))
 		return
 	}
 	desiredName := matches[1]
 	desiredIndex := int(desiredName[0]) - 65
 	if 0 < desiredIndex && desiredIndex > 11 {
+		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(fmt.Sprint("Error: Elevator ", desiredName, " could not be found. Please select an elevator from the letters A through L.")))
 	}
 	newLower, err1 := strconv.Atoi(matches[2])
 	newUpper, err2 := strconv.Atoi(matches[3])
 	if err1 != nil || err2 != nil {
-		fmt.Println("Err")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprint("Something went wrong...")))
 		return
-	} else if newLower > newUpper {
-		fmt.Println("Err")
+	} else if newLower > newUpper || elevators[desiredIndex].currFloor < newLower || elevators[desiredIndex].currFloor > newUpper {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprint("Error: newLower must be smaller than newUpper, and the current floor must be between the new values.")))
 		return
 	}
 	elevators[desiredIndex].minFloor = newLower
@@ -222,11 +229,14 @@ func (h *elevatorHandler) updateElevator(w http.ResponseWriter, r *http.Request)
 func (h *elevatorHandler) dropElevator(w http.ResponseWriter, r *http.Request) {
 	matches := dropElevatorStr.FindStringSubmatch(r.URL.String())
 	if len(matches) < 2 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintln("Error: Missing proper parameters")))
 		return
 	}
 	desiredName := matches[1]
 	desiredIndex := int(desiredName[0]) - 65
 	if elevators[desiredIndex].currFloor == elevators[desiredIndex].minFloor {
+		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(fmt.Sprintln("This elevator can't drop any further.")))
 	} else {
 		elevators[desiredIndex].currFloor--
@@ -237,12 +247,15 @@ func (h *elevatorHandler) dropElevator(w http.ResponseWriter, r *http.Request) {
 func (h *elevatorHandler) callElevatorAPI(w http.ResponseWriter, r *http.Request) {
 	matches := callElevatorStr.FindStringSubmatch(r.URL.String())
 	if len(matches) < 3 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintln("Error: Missing proper parameters")))
 		return
 	}
 	startingFloor, err1 := strconv.Atoi(matches[1])
 	desiredFloor, err2 := strconv.Atoi(matches[2])
 	if err1 != nil || err2 != nil {
 		fmt.Println("Err")
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	w.Write([]byte(fmt.Sprintln("Elevator called to ", startingFloor)))
@@ -263,6 +276,8 @@ func (h *elevatorHandler) allInfo(w http.ResponseWriter, r *http.Request) {
 func (h *elevatorHandler) elevatorInfo(w http.ResponseWriter, r *http.Request) {
 	matches := getElevatorInfo.FindStringSubmatch(r.URL.String())
 	if len(matches) < 2 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintln("Error: Missing proper parameters")))
 		return
 	}
 	desiredName := matches[1]
@@ -270,6 +285,7 @@ func (h *elevatorHandler) elevatorInfo(w http.ResponseWriter, r *http.Request) {
 	if 0 <= desiredIndex && desiredIndex <= 11 {
 		w.Write([]byte(fmt.Sprintf("%+v", h.store[desiredIndex])))
 	} else {
-		w.Write([]byte(fmt.Sprint("Error: Elevator", desiredName, "could not be found. Please select an elevator from the letters A through L.")))
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(fmt.Sprint("Error: Elevator ", desiredName, " could not be found. Please select an elevator from the letters A through L.")))
 	}
 }
