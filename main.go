@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"math/rand"
 	"net/http"
@@ -29,12 +30,12 @@ func constructElevators() {
 	for i := 0; i < 6; i++ {
 		elevators[i] = Elevator{set1Min, set1Max,
 			set1Min + rand.Intn(13), false, string(65 + i)}
-		fmt.Printf("%+v\n", elevators[i])
+		// fmt.Printf("%+v\n", elevators[i])
 	}
 	for i := 0; i < 6; i++ {
 		elevators[i+6] = Elevator{set2Min, set2Max,
 			set2Min + rand.Intn(15), false, string(71 + i)}
-		fmt.Printf("%+v\n", elevators[i+6])
+		// fmt.Printf("%+v\n", elevators[i+6])
 	}
 }
 
@@ -97,36 +98,36 @@ var wg, wg1 sync.WaitGroup
 
 func moveElevator(elevatorIndex, desiredFloor int) {
 	defer wg.Done()
-	fmt.Println("Elevator", elevators[elevatorIndex].name, "starting on floor", elevators[elevatorIndex].currFloor)
+	// fmt.Println("Elevator", elevators[elevatorIndex].name, "starting on floor", elevators[elevatorIndex].currFloor)
 	elevators[elevatorIndex].inTransit = true
 	goingDown := elevators[elevatorIndex].currFloor > desiredFloor
 	diff := math.Abs(float64(desiredFloor - elevators[elevatorIndex].currFloor))
 	for i := 0.0; i < diff; i++ {
 		if goingDown {
 			elevators[elevatorIndex].currFloor--
-			fmt.Println("Elevator", elevators[elevatorIndex].name, "moved down")
+			// fmt.Println("Elevator", elevators[elevatorIndex].name, "moved down")
 		} else {
 			elevators[elevatorIndex].currFloor++
-			fmt.Println("Elevator", elevators[elevatorIndex].name, "moved up")
+			// fmt.Println("Elevator", elevators[elevatorIndex].name, "moved up")
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
-	fmt.Println("Elevator", elevators[elevatorIndex].name, "arrived at floor", desiredFloor)
+	// fmt.Println("Elevator", elevators[elevatorIndex].name, "arrived at floor", desiredFloor)
 	elevators[elevatorIndex].inTransit = false
 }
 
 func callElevator(startingFloor, desiredFloor int) {
 	defer wg1.Done()
-	result, foundElevator := findElevator(startingFloor, desiredFloor)
+	_, foundElevator := findElevator(startingFloor, desiredFloor)
 	if foundElevator < 0 {
-		fmt.Println(result)
+		// fmt.Println(result)
 		return
 	}
 	wg.Add(1)
 	go moveElevator(foundElevator, startingFloor)
 	wg.Wait()
 	time.Sleep(1000 * time.Millisecond)
-	fmt.Println("Boarded elevator")
+	// fmt.Println("Boarded elevator")
 	wg.Add(1)
 	go moveElevator(foundElevator, desiredFloor)
 	wg.Wait()
@@ -148,7 +149,10 @@ func main() {
 	mux.Handle("/callelevator/", elevatorH)
 	mux.Handle("/dropelevator/", elevatorH)
 	mux.Handle("/updateelevator/", elevatorH)
-	http.ListenAndServe("localhost:8080", mux)
+
+	log.Println("Server is running!")
+	fmt.Println(http.ListenAndServe(":8080", mux))
+	// http.ListenAndServe(":8080", mux)
 	// fmt.Println()
 	// wg1.Add(1)
 	// go callElevator(40, 35)
@@ -198,7 +202,7 @@ func (h *elevatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 func (h *elevatorHandler) updateElevator(w http.ResponseWriter, r *http.Request) {
 	matches := updateElevatorStr.FindStringSubmatch(r.URL.String())
-	fmt.Println(r.URL.String())
+	// fmt.Println(r.URL.String())
 	if len(matches) < 4 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(fmt.Sprintln("Error: Missing proper parameters")))
@@ -254,7 +258,7 @@ func (h *elevatorHandler) callElevatorAPI(w http.ResponseWriter, r *http.Request
 	startingFloor, err1 := strconv.Atoi(matches[1])
 	desiredFloor, err2 := strconv.Atoi(matches[2])
 	if err1 != nil || err2 != nil {
-		fmt.Println("Err")
+		// fmt.Println("Err")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
